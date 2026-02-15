@@ -1,6 +1,6 @@
 # Cascaded Tissue Filter Model of the EEG Aperiodic Spectrum
 
-[![DOI](https://zenodo.org/badge/DOI/PLACEHOLDER.svg)](https://doi.org/PLACEHOLDER](https://zenodo.org/badge/DOI/10.5281/zenodo.18646632.svg))
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18646632.svg)](https://doi.org/10.5281/zenodo.18646632)
 
 **Microtubule Sub-Harmonics as Broadband Neural Source: A Cascaded Tissue Filter Model of the EEG Aperiodic Spectrum with Literature-Constrained Biophysical Parameters**
 
@@ -121,7 +121,7 @@ If you use this code or build on this work, please cite:
   author={Parwez, Syed Mohsin},
   journal={bioRxiv},
   year={2026},
-  doi={PLACEHOLDER}
+  doi=[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18646632.svg)](https://doi.org/10.5281/zenodo.18646632)
 }
 ```
 
