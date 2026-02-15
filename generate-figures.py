@@ -48,7 +48,6 @@ plt.rcParams.update({
     'axes.titlesize': 13,
     'figure.dpi': 150,
     'savefig.dpi': 300,
-    'savefig.bbox_inches': 'tight',
 })
 
 
@@ -58,13 +57,14 @@ plt.rcParams.update({
 
 def figure1():
     """
-    Figure 1. Left (A): Harmonic density contributions from each MT band.
-    Right (B): PSD of synthetic EEG with specparam fit.
+    Figure 1. Left (A): Harmonic density contributions from each MT band
+    with EEG band labels. Right (B): PSD of synthetic EEG with specparam
+    fit on log-log axes extending to 100 Hz.
     """
     print("  Figure 1: Source spectrum... ", end="", flush=True)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5.5))
 
-    # Panel A: Per-band harmonic density
+    # ── Panel A: Per-band harmonic density ───────────────────────────
     band_configs = {
         'kHz (k=1.0)': {'color': '#e74c3c', 'f_lo': 10e3, 'f_hi': 300e3, 'k': 1.0},
         'MHz (k=1.5)': {'color': '#3498db', 'f_lo': 10e6, 'f_hi': 230e6, 'k': 1.5},
@@ -76,53 +76,70 @@ def figure1():
             name=label,
             bands=[BandConfig(cfg['f_lo'], cfg['f_hi'], cfg['k'], 5)]
         )
-        bc, dens = compute_harmonic_density(cond)
+        bc, dens = compute_harmonic_density(cond, f_max=100.0)
         valid = dens > 0
-        ax1.loglog(bc[valid], dens[valid], 'o-', color=cfg['color'],
-                   label=label, markersize=3, alpha=0.7)
+        ax1.loglog(bc[valid], dens[valid], '-', color=cfg['color'],
+                   label=label, linewidth=1.5, alpha=0.7)
 
     # Combined
     h = healthy()
-    bc, dens = compute_harmonic_density(h)
+    bc, dens = compute_harmonic_density(h, f_max=100.0)
     valid = dens > 0
     ax1.loglog(bc[valid], dens[valid], 'k-', linewidth=2, label='Combined')
 
-    # Fit line for reference
+    # 1/f reference line
     log_f = np.log10(bc[valid])
     log_d = np.log10(dens[valid])
     slope, intercept = np.polyfit(log_f, log_d, 1)
     fit_line = 10**(intercept + slope * log_f)
-    ax1.loglog(bc[valid], fit_line, 'k--', alpha=0.5,
-               label=f'Fit: slope = {slope:.2f}')
+    ax1.loglog(bc[valid], fit_line, '--', color='gray', alpha=0.6,
+               linewidth=1.5, label=f'1/f reference (slope={slope:.2f})')
+
+    # EEG band labels
+    eeg_bands = {
+        r'$\delta$': (1.5, 4),
+        r'$\theta$': (4, 8),
+        r'$\alpha$': (8, 13),
+        r'$\beta$': (13, 30),
+        r'$\gamma$': (30, 50),
+    }
+    y_label_pos = ax1.get_ylim()[0] * 3  # just above bottom
+    for label, (flo, fhi) in eeg_bands.items():
+        fc = np.sqrt(flo * fhi)
+        ax1.text(fc, y_label_pos, label, ha='center', va='bottom',
+                 fontsize=12, color='gray', fontstyle='italic')
 
     ax1.set_xlabel('Frequency (Hz)')
     ax1.set_ylabel('Harmonic density (count/Hz)')
-    ax1.set_title('A. Harmonic Density by MT Band')
-    ax1.legend(fontsize=9)
+    ax1.set_title('A) MT Harmonic Density by Band')
+    ax1.legend(fontsize=8, loc='upper right')
     ax1.grid(True, alpha=0.3)
 
-    # Panel B: PSD with specparam fit
+    # ── Panel B: PSD with specparam fit (log-log, to 100 Hz) ────────
     sig = generate_synthetic_eeg(h, fs=250, duration=180.0, seed=42)
     from scipy.signal import welch
     f_psd, psd = welch(sig, fs=250, nperseg=2048, noverlap=1024)
 
-    result = fit_specparam(sig, fs=250)
+    # Fit specparam on 1-50 Hz as in paper
+    result = fit_specparam(sig, fs=250, freq_range=(1, 50))
     beta_val = result['exponent']
-
-    mask = (f_psd >= 1) & (f_psd <= 50)
-    ax2.semilogy(f_psd[mask], psd[mask], 'k-', alpha=0.7, label='Synthetic PSD')
-
-    # Aperiodic fit line
     offset = result['offset']
-    fit_freqs = f_psd[mask]
+
+    # Plot PSD out to 100 Hz
+    mask = (f_psd >= 0.5) & (f_psd <= 100)
+    ax2.loglog(f_psd[mask], psd[mask], '-', color='gray', alpha=0.7,
+               linewidth=0.8, label='Synthetic PSD')
+
+    # Aperiodic fit line (1-100 Hz for visual reference)
+    fit_freqs = np.logspace(np.log10(1), np.log10(100), 200)
     fit_psd = 10**(offset - beta_val * np.log10(fit_freqs))
-    ax2.semilogy(fit_freqs, fit_psd, 'r--', linewidth=2,
-                 label=f'Aperiodic fit: $\\beta$ = {beta_val:.2f}')
+    ax2.loglog(fit_freqs, fit_psd, 'r--', linewidth=2,
+               label=f'Specparam fit: $\\beta$ = {beta_val:.2f}')
 
     ax2.set_xlabel('Frequency (Hz)')
-    ax2.set_ylabel('Power ($\\mu V^2$/Hz)')
-    ax2.set_title('B. Source PSD (specparam)')
-    ax2.legend(fontsize=9)
+    ax2.set_ylabel('Power Spectral Density')
+    ax2.set_title('B) Synthetic EEG Power Spectrum')
+    ax2.legend(fontsize=9, loc='upper right')
     ax2.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -139,9 +156,10 @@ def figure1():
 def figure2():
     """
     Figure 2. Sub-band slope variation from synthetic MT source.
+    Bar chart matching paper style with colour gradient from low to high bands.
     """
     print("  Figure 2: Sub-band gradient (source)... ", end="", flush=True)
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(8, 5.5))
 
     h = healthy()
     sig = generate_synthetic_eeg(h, fs=250, duration=180.0, seed=42)
@@ -152,32 +170,35 @@ def figure2():
     global_beta = result['exponent']
 
     band_names = ['delta', 'theta', 'alpha', 'beta', 'gamma']
-    band_centers = [2.5, 6, 10.5, 21.5, 40]
     band_labels = ['$\\delta$\n(1.5-4)', '$\\theta$\n(4-8)', '$\\alpha$\n(8-13)',
                    '$\\beta$\n(13-30)', '$\\gamma$\n(30-50)']
 
     values = [sb.get(b) for b in band_names]
-    valid_vals = [(c, v) for c, v in zip(band_centers, values) if v is not None]
+    x = np.arange(len(band_names))
 
-    if valid_vals:
-        x_vals, y_vals = zip(*valid_vals)
-        ax.plot(x_vals, y_vals, 'bo-', markersize=10, linewidth=2, label='Sub-band $\\beta$')
+    # Colour gradient matching paper (dark blue -> teal -> green -> bright green)
+    colors = ['#2c3e6b', '#2b6e8a', '#2e8b8b', '#3cb371', '#addb58']
 
-        # Global beta reference
-        ax.axhline(global_beta, color='red', linestyle='--', linewidth=1.5,
-                   label=f'Global $\\beta$ = {global_beta:.2f}')
+    bars = ax.bar(x, values, color=colors, edgecolor='black', linewidth=0.5,
+                  width=0.7)
 
-        for c, v, lbl in zip(band_centers, values, band_labels):
-            if v is not None:
-                ax.annotate(f'{v:.2f}', (c, v), textcoords="offset points",
-                           xytext=(0, 12), ha='center', fontsize=10)
+    # Value labels above each bar
+    for i, v in enumerate(values):
+        if v is not None:
+            ax.text(i, v + 0.05, f'{v:.2f}', ha='center', va='bottom',
+                    fontsize=12, fontweight='bold')
 
-    ax.set_xticks(band_centers)
-    ax.set_xticklabels(band_labels)
+    # Global beta reference line
+    ax.axhline(global_beta, color='red', linestyle='--', linewidth=1.5,
+               alpha=0.7, label=f'Global $\\beta$ = {global_beta:.2f}')
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(band_labels, fontsize=11)
     ax.set_xlabel('Frequency Band')
-    ax.set_ylabel('Aperiodic Exponent ($\\beta$)')
-    ax.set_title('Sub-band Slope Variation — MT Source Model (specparam)')
-    ax.legend()
+    ax.set_ylabel('Local Aperiodic Exponent ($\\beta$)')
+    ax.set_title('Sub-Band Slope Variation\n(Low-frequency FLAT $\\rightarrow$ High-frequency STEEP)')
+    ax.legend(fontsize=10)
+    ax.set_ylim(0, max(v for v in values if v is not None) * 1.15)
     ax.grid(True, alpha=0.3, axis='y')
 
     plt.tight_layout()
@@ -194,29 +215,54 @@ def figure2():
 def figure3():
     """
     Figure 3. SSD Delta_beta as a function of bandwidth narrowing.
+
+    Uses multi-seed averaging (N=10 seeds) to eliminate Monte Carlo
+    sampling noise from the synthetic EEG generator. Individual seed
+    results are shown as transparent markers; the mean is the solid line.
+    This reflects the model's true prediction rather than any single
+    stochastic realisation.
     """
     print("  Figure 3: SSD bandwidth... ", end="", flush=True)
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Get healthy baseline
+    seeds = [42, 123, 456, 789, 999, 1001, 2024, 3141, 4242, 5555]
+    n_seeds = len(seeds)
+
+    # Get healthy baselines for each seed
     h = healthy()
-    sig_h = generate_synthetic_eeg(h, fs=250, duration=180.0, seed=42)
-    r_h = fit_specparam(sig_h, fs=250)
-    beta_healthy = r_h['exponent']
+    beta_healthy_per_seed = []
+    for seed in seeds:
+        sig_h = generate_synthetic_eeg(h, fs=250, duration=180.0, seed=seed)
+        r_h = fit_specparam(sig_h, fs=250)
+        beta_healthy_per_seed.append(r_h['exponent'])
 
     # Sweep bandwidth fractions
     bw_fractions = [0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00]
-    delta_betas = []
+    all_delta_betas = np.zeros((n_seeds, len(bw_fractions)))
 
-    for bw in bw_fractions:
+    for j, bw in enumerate(bw_fractions):
         cond = ssd_bandwidth(bw)
-        sig_s = generate_synthetic_eeg(cond, fs=250, duration=180.0, seed=42)
-        r_s = fit_specparam(sig_s, fs=250)
-        db = r_s['exponent'] - beta_healthy
-        delta_betas.append(db)
+        for i, seed in enumerate(seeds):
+            sig_s = generate_synthetic_eeg(cond, fs=250, duration=180.0, seed=seed)
+            r_s = fit_specparam(sig_s, fs=250)
+            all_delta_betas[i, j] = r_s['exponent'] - beta_healthy_per_seed[i]
 
-    ax.plot([bw * 100 for bw in bw_fractions], delta_betas,
-            'bo-', markersize=8, linewidth=2, label='Source model $\\Delta\\beta$')
+    mean_delta = np.mean(all_delta_betas, axis=0)
+    std_delta = np.std(all_delta_betas, axis=0)
+    bw_pct = [bw * 100 for bw in bw_fractions]
+
+    # Individual seeds (transparent)
+    for i in range(n_seeds):
+        ax.plot(bw_pct, all_delta_betas[i, :], 'o', color='steelblue',
+                alpha=0.15, markersize=5, zorder=2)
+
+    # Mean +/- 1 SD shading
+    ax.fill_between(bw_pct, mean_delta - std_delta, mean_delta + std_delta,
+                    color='steelblue', alpha=0.2, label='$\\pm$1 SD across seeds')
+
+    # Mean line
+    ax.plot(bw_pct, mean_delta, 'bo-', markersize=8, linewidth=2, zorder=4,
+            label=f'Mean $\\Delta\\beta$ (N={n_seeds} seeds)')
 
     # Hasanaj reference
     hasanaj_val = 0.168
@@ -228,16 +274,17 @@ def figure3():
 
     # Mark 60% point
     idx_60 = bw_fractions.index(0.60)
-    ax.plot(60, delta_betas[idx_60], 'r*', markersize=15, zorder=5)
-    ax.annotate(f'60%: $\\Delta\\beta$ = {delta_betas[idx_60]:+.3f}',
-               (60, delta_betas[idx_60]), textcoords="offset points",
+    mean_60 = mean_delta[idx_60]
+    ax.plot(60, mean_60, 'r*', markersize=15, zorder=5)
+    ax.annotate(f'60%: $\\Delta\\beta$ = {mean_60:+.3f}',
+               (60, mean_60), textcoords="offset points",
                xytext=(-80, 15), fontsize=10,
                arrowprops=dict(arrowstyle='->', color='red'))
 
     ax.set_xlabel('MT Bandwidth (% of healthy)')
     ax.set_ylabel('$\\Delta\\beta$ (relative to healthy)')
-    ax.set_title('SSD Source Mechanism: Bandwidth Narrowing')
-    ax.legend(fontsize=9)
+    ax.set_title('SSD Source Mechanism: Bandwidth Narrowing (multi-seed average)')
+    ax.legend(fontsize=8, loc='upper right')
     ax.grid(True, alpha=0.3)
     ax.invert_xaxis()
 
@@ -257,7 +304,6 @@ def figure4():
     Figure 4. Source-level consciousness state mapping.
     """
     print("  Figure 4: Consciousness states... ", end="", flush=True)
-    fig, ax = plt.subplots(figsize=(8, 5))
 
     states = [
         ("Healthy", healthy),
@@ -276,23 +322,26 @@ def figure4():
         betas.append(r['exponent'])
         labels.append(name)
 
+    fig, ax = plt.subplots(figsize=(10, 6))
     x = np.arange(len(labels))
-    colors = plt.cm.RdYlGn_r(np.linspace(0.2, 0.9, len(labels)))
-    bars = ax.bar(x, betas, color=colors, edgecolor='black', linewidth=0.5)
+    colors = ['#2ecc71', '#f1c40f', '#e67e22', '#e74c3c', '#9b59b6']
 
-    for i, (xi, b) in enumerate(zip(x, betas)):
-        ax.text(xi, b + 0.05, f'{b:.2f}', ha='center', va='bottom', fontsize=10)
+    ax.bar(x, betas, color=colors, edgecolor='black', linewidth=0.5, width=0.65)
 
-    # Reference thresholds
-    ax.axhline(1.0, color='green', linestyle=':', alpha=0.7, label='Awake threshold ($\\beta$ ~ 1.0)')
-    ax.axhline(2.0, color='red', linestyle=':', alpha=0.7, label='Unconscious threshold ($\\beta$ ~ 2.0)')
+    for i, b in enumerate(betas):
+        ax.text(i, b + 0.08, f'$\\beta$ = {b:.2f}', ha='center', va='bottom',
+                fontsize=11, fontweight='bold')
+
+    ax.axhline(1.0, color='green', linestyle=':', alpha=0.7, label='Awake ($\\beta$ ~ 1.0)')
+    ax.axhline(2.0, color='red', linestyle=':', alpha=0.7, label='Unconscious ($\\beta$ ~ 2.0)')
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=10)
     ax.set_ylabel('Aperiodic Exponent ($\\beta$)')
-    ax.set_title('Source-Level Consciousness State Mapping')
+    ax.set_title('MT Oscillator Diversity $\\rightarrow$ Consciousness State Mapping')
+    ax.set_ylim(0, max(betas) * 1.25)
     ax.legend(fontsize=9, loc='upper left')
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.grid(True, alpha=0.2, axis='y')
 
     plt.tight_layout()
     outpath = os.path.join(FIGDIR, 'figure4_consciousness_states.png')
