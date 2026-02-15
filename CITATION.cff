@@ -9,7 +9,7 @@ authors:
 version: "1.0.0"
 date-released: "2026-02-15"
 license: MIT
-repository-code: "https://github.com/PLACEHOLDER/cascade-filter-model"
+repository-code: "https://github.com/Moebe1/cascaded-tissue-filter-eeg-"
 abstract: >-
   Computational code and analysis pipelines for a three-component biophysical
   model that derives the EEG aperiodic spectral slope from microtubule
