@@ -121,7 +121,7 @@ If you use this code or build on this work, please cite:
   author={Parwez, Syed Mohsin},
   journal={bioRxiv},
   year={2026},
-  doi=[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18646632.svg)](https://doi.org/10.5281/zenodo.18646632)
+  doi={10.5281/zenodo.18646632}
 }
 ```
 
