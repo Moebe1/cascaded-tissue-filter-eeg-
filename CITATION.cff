@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Cascaded Tissue Filter Model of the EEG Aperiodic Spectrum"
+authors:
+  - family-names: "Parwez"
+    given-names: "Syed Mohsin"
+    orcid: "https://orcid.org/0009-0004-6318-0309"
+version: "1.0.0"
+date-released: "2026-02-15"
+license: MIT
+repository-code: "https://github.com/PLACEHOLDER/cascade-filter-model"
+abstract: >-
+  Computational code and analysis pipelines for a three-component biophysical
+  model that derives the EEG aperiodic spectral slope from microtubule
+  sub-harmonic oscillations filtered through neuronal membrane RC circuits
+  and skull spatial low-pass filtering.
+keywords:
+  - microtubules
+  - aperiodic exponent
+  - EEG
+  - spectral analysis
+  - tissue filter
+  - membrane time constant
+  - 1/f noise
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Parwez"
+      given-names: "Syed Mohsin"
+      orcid: "https://orcid.org/0009-0004-6318-0309"
+  title: "Microtubule Sub-Harmonics as Broadband Neural Source: A Cascaded Tissue Filter Model of the EEG Aperiodic Spectrum with Literature-Constrained Biophysical Parameters"
+  journal: "bioRxiv"
+  year: 2026
+  doi: "PLACEHOLDER"

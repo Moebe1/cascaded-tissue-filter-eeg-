@@ -1,0 +1,30 @@
+# =============================================================================
+# Cascaded Tissue Filter Model - Reproducibility Package
+# Parwez (2026)
+# =============================================================================
+#
+# INSTALLATION:
+#   conda create -n cascade_eeg python=3.10
+#   conda activate cascade_eeg
+#   pip install -r requirements.txt
+#
+# SCRIPT DEPENDENCIES:
+#   mt_model.py                    - Core model (numpy, scipy, matplotlib)
+#   cascade_transition_analysis.py - Cascade predictions (numpy, scipy, matplotlib)
+#   analysis_lemon_full.py         - LEMON dataset (ALL packages below)
+#   analysis_amplitude_decay.py    - Decay models (numpy, scipy, matplotlib, specparam)
+#
+# =============================================================================
+
+# --- Core computation (required for all scripts) ---
+numpy>=1.24,<2.0
+scipy>=1.10,<2.0
+matplotlib>=3.7,<4.0
+
+# --- EEG signal processing (required for analysis_lemon_full.py) ---
+mne>=1.5,<2.0
+yasa>=0.6.4
+pandas>=2.0,<3.0
+
+# --- Spectral parameterisation ---
+specparam>=2.0.0rc6
